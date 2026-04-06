@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget · Hábitos & Calendario</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Noto Serif JP', serif;
+    padding: 16px;
+  }
+
+  .pagina {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── CARD BASE ── */
+  .card {
+    background: rgba(253, 250, 246, 0.95);
+    border: 1px solid #ede4d4;
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 4px 24px rgba(180, 140, 120, 0.10);
+    animation: aparecer 0.6s ease both;
+  }
+
+  .card:nth-child(1) { animation-delay: 0.1s; }
+  .card:nth-child(2) { animation-delay: 0.25s; }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Línea de color superior */
+  .card.rosa::before  { background: linear-gradient(to right, #d4849e, #c4b8d8); }
+  .card.sage::before  { background: linear-gradient(to right, #b8cbb4, #c8a882); }
+
+  .card::before {
+    content: '';
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    margin: -22px -24px 18px;
+  }
+
+  /* ── ENCABEZADO DE SECCIÓN ── */
+  .seccion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #ede4d4;
+  }
+
+  .seccion-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .seccion-icono { font-size: 16px; }
+
+  .seccion-nombre {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #2e2420;
+    letter-spacing: 0.03em;
+  }
+
+  .seccion-tag {
+    font-size: 9px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.08em;
+    border: 1px solid;
+  }
+
+  .tag-rosa  { background: #fce8f0; color: #b0607a; border-color: #d4849e; }
+  .tag-sage  { background: #eaf4e8; color: #507048; border-color: #b8cbb4; }
+  .tag-lav   { background: #f0ecfb; color: #7050b0; border-color: #c4b8d8; }
+  .tag-warm  { background: #fdf0e0; color: #8a6020; border-color: #c8a882; }
+  .tag-gold  { background: #fdf4e0; color: #806010; border-color: #c8a060; }
+
+  /* ════════════════════════════
+     TRACKER DE HÁBITOS
+  ════════════════════════════ */
+
+  /* Cabecera de días */
+  .dias-cabecera {
+    display: grid;
+    grid-template-columns: 130px repeat(7, 1fr) 36px;
+    gap: 3px;
+    margin-bottom: 6px;
+    padding: 0 2px;
+  }
+
+  .dia-label {
+    text-align: center;
+    font-size: 9px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+    padding: 2px 0;
+  }
+
+  .dia-label.hoy {
+    color: #d4849e;
+    font-weight: 400;
+  }
+
+  /* Fila de hábito */
+  .habito-fila {
+    display: grid;
+    grid-template-columns: 130px repeat(7, 1fr) 36px;
+    gap: 3px;
+    align-items: center;
+    padding: 4px 2px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+
+  .habito-fila:hover { background: rgba(237, 228, 212, 0.3); }
+
+  .habito-nombre {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #4a3c30;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .habito-emoji { font-size: 13px; flex-shrink: 0; }
+
+  /* Punto de hábito */
+  .punto {
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 28px;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: 1.5px solid #e8ddd0;
+    background: white;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+  }
+
+  .punto:hover {
+    border-color: #c8a882;
+    transform: scale(1.15);
+  }
+
+  .punto.activo {
+    border-color: transparent;
+    font-size: 9px;
+    color: white;
+  }
+
+  /* Colores por hábito */
+  .punto.activo.c-rosa   { background: #d4849e; }
+  .punto.activo.c-sage   { background: #88aa80; }
+  .punto.activo.c-lav    { background: #a898c8; }
+  .punto.activo.c-warm   { background: #c8a060; }
+  .punto.activo.c-gold   { background: #c8b040; }
+
+  /* Porcentaje */
+  .habito-pct {
+    text-align: center;
+    font-size: 10px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+  }
+
+  /* Mini barra de progreso del hábito */
+  .habito-mini-bar {
+    height: 3px;
+    background: #ede4d4;
+    border-radius: 2px;
+    margin-top: 2px;
+    overflow: hidden;
+  }
+
+  .habito-mini-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Resumen semanal abajo */
+  .resumen {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #ede4d4;
+    flex-wrap: wrap;
+  }
+
+  .resumen-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #6a5a50;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+  }
+
+  .resumen-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ════════════════════════════
+     CALENDARIO MENSUAL
+  ════════════════════════════ */
+
+  .cal-nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .cal-mes-anio {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: #2e2420;
+    letter-spacing: 0.05em;
+  }
+
+  .cal-btns {
+    display: flex;
+    gap: 4px;
+  }
+
+  .cal-btn {
+    background: none;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    width: 28px; height: 28px;
+    font-size: 13px;
+    color: #9a8f82;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .cal-btn:hover { background: #fce8f0; border-color: #d4849e; color: #d4849e; }
+
+  /* Grid del calendario */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .cal-dia-nombre {
+    text-align: center;
+    font-size: 9px;
+    color: #9a8f82;
+    letter-spacing: 0.1em;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 4px 0 8px;
+    text-transform: uppercase;
+  }
+
+  .cal-dia {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #4a3c30;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    gap: 2px;
+  }
+
+  .cal-dia:hover { background: #fce8f0; }
+
+  .cal-dia.hoy {
+    background: #d4849e;
+    color: white;
+    font-weight: 400;
+  }
+
+  .cal-dia.seleccionado {
+    background: #f0ecfb;
+    border: 1.5px solid #c4b8d8;
+    color: #7050b0;
+  }
+
+  .cal-dia.otro-mes { color: #c8b8a8; }
+
+  .cal-dia.vacio { pointer-events: none; }
+
+  /* Punto de evento */
+  .cal-evento-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Panel de nota del día */
+  .dia-nota-panel {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #ede4d4;
+    display: none;
+  }
+
+  .dia-nota-panel.visible { display: block; }
+
+  .dia-nota-titulo {
+    font-size: 10px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .dia-nota-titulo span {
+    color: #d4849e;
+    font-style: italic;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  .dia-nota-input {
+    width: 100%;
+    background: #fdfaf6;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 300;
+    color: #2e2420;
+    font-style: italic;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    min-height: 60px;
+    transition: border-color 0.2s;
+  }
+
+  .dia-nota-input:focus { border-color: #d4849e; }
+  .dia-nota-input::placeholder { color: #c8b8a8; }
+
+  /* Eventos del mes */
+  .eventos-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .evento-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #4a3c30;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+  }
+
+  .evento-fecha-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 8px;
+    font-family: 'Noto Sans JP', sans-serif;
+    flex-shrink: 0;
+  }
+
+  /* Deco footer */
+  .deco {
+    text-align: center;
+    font-size: 10px;
+    color: #c4b8d8;
+    letter-spacing: 0.3em;
+    padding: 4px 0 2px;
+  }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <!-- ══════════ TRACKER DE HÁBITOS ══════════ -->
+  <div class="card rosa">
+    <div class="seccion-header">
+      <div class="seccion-titulo">
+        <span class="seccion-icono">🌱</span>
+        <span class="seccion-nombre">Tracker de hábitos</span>
+      </div>
+      <span class="seccion-tag tag-rosa" id="semana-label">semana actual</span>
+    </div>
+
+    <!-- Cabecera de días -->
+    <div class="dias-cabecera">
+      <div></div>
+      <div class="dia-label" id="dl-0">L</div>
+      <div class="dia-label" id="dl-1">M</div>
+      <div class="dia-label" id="dl-2">X</div>
+      <div class="dia-label" id="dl-3">J</div>
+      <div class="dia-label" id="dl-4">V</div>
+      <div class="dia-label" id="dl-5">S</div>
+      <div class="dia-label" id="dl-6">D</div>
+      <div></div>
+    </div>
+
+    <!-- Filas de hábitos -->
+    <div id="habitos-container"></div>
+
+    <!-- Resumen -->
+    <div class="resumen" id="resumen-habitos"></div>
+
+    <div class="deco" style="margin-top:12px;">✿ ── ✦ ── ✿</div>
+  </div>
+
+  <!-- ══════════ CALENDARIO MENSUAL ══════════ -->
+  <div class="card sage">
+    <div class="seccion-header">
+      <div class="seccion-titulo">
+        <span class="seccion-icono">🗓</span>
+        <span class="seccion-nombre">Calendario mensual</span>
+      </div>
+      <span class="seccion-tag tag-sage" id="cal-tag">este mes</span>
+    </div>
+
+    <div class="cal-nav-row">
+      <div class="cal-mes-anio" id="cal-titulo">Abril 2025</div>
+      <div class="cal-btns">
+        <button class="cal-btn" onclick="cambiarMes(-1)">‹</button>
+        <button class="cal-btn" onclick="cambiarMes(1)">›</button>
+      </div>
+    </div>
+
+    <div class="cal-grid" id="cal-grid"></div>
+
+    <!-- Panel de nota del día seleccionado -->
+    <div class="dia-nota-panel" id="nota-panel">
+      <div class="dia-nota-titulo">✦ nota para <span id="nota-dia-titulo">hoy</span></div>
+      <textarea class="dia-nota-input" id="nota-input" placeholder="escribe algo para este día... ✿" rows="2"></textarea>
+      <div class="eventos-lista" id="eventos-lista"></div>
+    </div>
+
+    <div class="deco" style="margin-top:14px;">˚ ₊ ✦ ₊ ˚</div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIGURACIÓN — personaliza aquí ✿
+// ══════════════════════════════════════════
+const HABITOS = [
+  { emoji: '📖', nombre: 'lectura',   color: 'c-rosa' },
+  { emoji: '💧', nombre: 'agua',      color: 'c-sage' },
+  { emoji: '🎨', nombre: 'crear',     color: 'c-lav'  },
+  { emoji: '🧘', nombre: 'calma',     color: 'c-warm' },
+  { emoji: '✍🏽', nombre: 'journaling',color: 'c-gold' },
+];
+
+// Colores de los puntos de resumen
+const COLOR_MAP = {
+  'c-rosa': '#d4849e',
+  'c-sage': '#88aa80',
+  'c-lav':  '#a898c8',
+  'c-warm': '#c8a060',
+  'c-gold': '#c8b040',
+};
+
+// Eventos del mes — puedes agregar los tuyos
+const EVENTOS = {
+  5:  { texto: 'subir widget a GitHub 🌸', color: 'tag-rosa' },
+  12: { texto: 'publicar en Gumroad ✦',    color: 'tag-lav'  },
+  20: { texto: 'primer video UGC 🎥',      color: 'tag-sage' },
+  28: { texto: 'revisión mensual 📝',      color: 'tag-warm' },
+};
+// ══════════════════════════════════════════
+
+const HOY      = new Date();
+const HOY_STR  = HOY.toDateString();
+let calFecha   = new Date(HOY.getFullYear(), HOY.getMonth(), 1);
+let diaSeleccionado = null;
+
+// ── STORAGE helpers ──
+function guardar(clave, valor) {
+  try { localStorage.setItem(clave, JSON.stringify(valor)); } catch(e) {}
+}
+function leer(clave, porDefecto) {
+  try {
+    const v = localStorage.getItem(clave);
+    return v !== null ? JSON.parse(v) : porDefecto;
+  } catch(e) { return porDefecto; }
+}
+
+// ══════════════════════════════════════════
+// TRACKER DE HÁBITOS
+// ══════════════════════════════════════════
+
+// Obtener lunes de esta semana
+function lunsDeSemana(fecha) {
+  const d = new Date(fecha);
+  const dia = d.getDay(); // 0=dom
+  const diff = dia === 0 ? -6 : 1 - dia;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+const lunes = lunsDeSemana(HOY);
+const diasSemana = Array.from({length:7}, (_,i) => {
+  const d = new Date(lunes);
+  d.setDate(lunes.getDate() + i);
+  return d;
+});
+
+// Marcar día de hoy en cabecera
+const nombresCortos = ['L','M','X','J','V','S','D'];
+diasSemana.forEach((d, i) => {
+  const el = document.getElementById(`dl-${i}`);
+  el.textContent = d.getDate();
+  if (d.toDateString() === HOY_STR) el.classList.add('hoy');
+});
+
+// Label de semana
+const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const fin = new Date(lunes); fin.setDate(lunes.getDate() + 6);
+document.getElementById('semana-label').textContent =
+  `${lunes.getDate()} – ${fin.getDate()} ${meses[fin.getMonth()]}`;
+
+// Renderizar filas de hábitos
+const contenedor = document.getElementById('habitos-container');
+
+HABITOS.forEach(hab => {
+  const claveHab = `hab_${hab.nombre}`;
+  const estado   = leer(claveHab, Array(7).fill(false));
+
+  const fila = document.createElement('div');
+  fila.className = 'habito-fila';
+
+  // Nombre
+  const nombre = document.createElement('div');
+  nombre.className = 'habito-nombre';
+  nombre.innerHTML = `<span class="habito-emoji">${hab.emoji}</span>${hab.nombre}`;
+  fila.appendChild(nombre);
+
+  // Puntos
+  const puntos = [];
+  for (let i = 0; i < 7; i++) {
+    const p = document.createElement('div');
+    p.className = 'punto' + (estado[i] ? ` activo ${hab.color}` : '');
+    if (estado[i]) p.textContent = '✓';
+    p.onclick = () => {
+      estado[i] = !estado[i];
+      p.className = 'punto' + (estado[i] ? ` activo ${hab.color}` : '');
+      p.textContent = estado[i] ? '✓' : '';
+      guardar(claveHab, estado);
+      actualizarPct();
+    };
+    fila.appendChild(p);
+    puntos.push(p);
+  }
+
+  // Porcentaje
+  const pctDiv = document.createElement('div');
+  pctDiv.className = 'habito-pct';
+
+  function actualizarPct() {
+    const total  = estado.filter(Boolean).length;
+    const pct    = Math.round((total / 7) * 100);
+    pctDiv.innerHTML = `${pct}%<div class="habito-mini-bar">
+      <div class="habito-mini-fill" style="width:${pct}%;background:${COLOR_MAP[hab.color]}"></div>
+    </div>`;
+    actualizarResumen();
+  }
+
+  fila.appendChild(pctDiv);
+  contenedor.appendChild(fila);
+  actualizarPct();
+});
+
+function actualizarResumen() {
+  const resumen = document.getElementById('resumen-habitos');
+  resumen.innerHTML = '';
+  HABITOS.forEach(hab => {
+    const estado = leer(`hab_${hab.nombre}`, Array(7).fill(false));
+    const total  = estado.filter(Boolean).length;
+    const item   = document.createElement('div');
+    item.className = 'resumen-item';
+    item.innerHTML = `
+      <div class="resumen-dot" style="background:${COLOR_MAP[hab.color]}"></div>
+      ${hab.emoji} ${hab.nombre} · <strong>${total}/7</strong>
+    `;
+    resumen.appendChild(item);
+  });
+}
+actualizarResumen();
+
+
+// ══════════════════════════════════════════
+// CALENDARIO
+// ══════════════════════════════════════════
+
+const NOMBRES_MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const NOMBRES_DIA = ['L','M','X','J','V','S','D'];
+
+function renderCalendario() {
+  const anio = calFecha.getFullYear();
+  const mes  = calFecha.getMonth();
+
+  document.getElementById('cal-titulo').textContent = `${NOMBRES_MES[mes]} ${anio}`;
+  document.getElementById('cal-tag').textContent =
+    (mes === HOY.getMonth() && anio === HOY.getFullYear()) ? 'este mes' : `${NOMBRES_MES[mes].toLowerCase()}`;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Cabecera de nombres
+  NOMBRES_DIA.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'cal-dia-nombre';
+    el.textContent = n;
+    grid.appendChild(el);
+  });
+
+  // Primer día del mes (ajustado a lunes=0)
+  const primero = new Date(anio, mes, 1);
+  let inicioDia = primero.getDay(); // 0=dom
+  inicioDia = inicioDia === 0 ? 6 : inicioDia - 1; // lunes=0
+
+  // Días del mes anterior
+  const diasMesAnterior = new Date(anio, mes, 0).getDate();
+  for (let i = inicioDia - 1; i >= 0; i--) {
+    const el = document.createElement('div');
+    el.className = 'cal-dia otro-mes vacio';
+    el.textContent = diasMesAnterior - i;
+    grid.appendChild(el);
+  }
+
+  // Días del mes
+  const totalDias = new Date(anio, mes + 1, 0).getDate();
+  for (let d = 1; d <= totalDias; d++) {
+    const el = document.createElement('div');
+    el.className = 'cal-dia';
+
+    const esHoy = d === HOY.getDate() && mes === HOY.getMonth() && anio === HOY.getFullYear();
+    const esSel = diaSeleccionado &&
+      diaSeleccionado.d === d && diaSeleccionado.m === mes && diaSeleccionado.a === anio;
+
+    if (esHoy) el.classList.add('hoy');
+    if (esSel) el.classList.add('seleccionado');
+
+    el.innerHTML = `<span>${d}</span>`;
+
+    // Punto de evento
+    if (EVENTOS[d]) {
+      const dot = document.createElement('div');
+      dot.className = 'cal-evento-dot';
+      dot.style.background = COLOR_MAP[
+        EVENTOS[d].color === 'tag-rosa' ? 'c-rosa' :
+        EVENTOS[d].color === 'tag-lav'  ? 'c-lav'  :
+        EVENTOS[d].color === 'tag-sage' ? 'c-sage' : 'c-warm'
+      ];
+      el.appendChild(dot);
+    }
+
+    el.onclick = () => seleccionarDia(d, mes, anio);
+    grid.appendChild(el);
+  }
+
+  // Días restantes para completar la última semana
+  const totalCeldas = inicioDia + totalDias;
+  const restantes   = totalCeldas % 7 === 0 ? 0 : 7 - (totalCeldas % 7);
+  for (let i = 1; i <= restantes; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-dia otro-mes vacio';
+    el.textContent = i;
+    grid.appendChild(el);
+  }
+}
+
+function seleccionarDia(d, m, a) {
+  diaSeleccionado = { d, m, a };
+  renderCalendario();
+
+  const panel = document.getElementById('nota-panel');
+  panel.classList.add('visible');
+
+  const nombreMes = NOMBRES_MES[m];
+  document.getElementById('nota-dia-titulo').textContent = `${d} de ${nombreMes}`;
+
+  // Cargar nota guardada
+  const clave = `nota_${a}_${m}_${d}`;
+  const nota  = leer(clave, '');
+  const input = document.getElementById('nota-input');
+  input.value = nota;
+
+  // Guardar al escribir
+  input.oninput = () => guardar(clave, input.value);
+
+  // Mostrar eventos del día
+  const listaEl = document.getElementById('eventos-lista');
+  listaEl.innerHTML = '';
+  if (EVENTOS[d] && m === calFecha.getMonth()) {
+    const item = document.createElement('div');
+    item.className = 'evento-item';
+    item.innerHTML = `
+      <span class="evento-fecha-badge ${EVENTOS[d].color}">${d} ${meses[m]}</span>
+      ${EVENTOS[d].texto}
+    `;
+    listaEl.appendChild(item);
+  }
+}
+
+function cambiarMes(dir) {
+  calFecha.setMonth(calFecha.getMonth() + dir);
+  diaSeleccionado = null;
+  document.getElementById('nota-panel').classList.remove('visible');
+  renderCalendario();
+}
+
+// Iniciar calendario
+renderCalendario();
+
+// Seleccionar hoy por defecto
+seleccionarDia(HOY.getDate(), HOY.getMonth(), HOY.getFullYear());
+</script>
+</body>
+</html>
