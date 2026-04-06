@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget · Reloj Aesthetic</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Sans+JP:wght@300&display=swap" rel="stylesheet">
+<style>
+  /* ── FONDO TRANSPARENTE para que se vea bien en Notion ── */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 8px;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  .widget { width: 100%;
+    background: rgba(253, 250, 246, 0.92);
+    border: 1px solid #ede4d4;
+    border-radius: 16px;
+    padding: 20px 28px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 24px rgba(180, 140, 120, 0.12);
+    
+
+    /* Animación de entrada */
+    animation: aparecer 0.6s ease both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Línea de color arriba — cambia el color aquí para personalizar */
+  .widget::before {
+    content: '';
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    margin: -20px -28px 16px;
+    background: linear-gradient(to right, #d4849e, #c4b8d8, #b8cbb4);
+  }
+
+  /* Decoración superior */
+  .deco-top {
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: #d4849e;
+    margin-bottom: 8px;
+  }
+
+  /* Hora principal */
+  .hora {
+    font-size: 2.4rem;
+    font-weight: 300;
+    color: #2e2420;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin-bottom: 6px;
+
+    /* Transición suave al cambiar */
+    transition: opacity 0.2s;
+  }
+
+  /* Segundos — más pequeños y suaves */
+  .segundos {
+    font-size: 0.85rem;
+    color: #c8a882;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+  }
+
+  /* Separador decorativo */
+  .separador {
+    font-size: 11px;
+    color: #c8a882;
+    letter-spacing: 0.25em;
+    margin: 8px 0;
+  }
+
+  /* Fecha */
+  .fecha {
+    font-size: 0.75rem;
+    color: #9a8f82;
+    letter-spacing: 0.1em;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .fecha .dia-semana {
+    color: #d4849e;
+    font-size: 0.8rem;
+  }
+
+  /* Decoración inferior */
+  .deco-bottom {
+    font-size: 11px;
+    color: #c4b8d8;
+    letter-spacing: 0.3em;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="deco-top">✿ ˚ ✦</div>
+
+  <div class="hora" id="hora">00:00</div>
+  <div class="segundos" id="segundos">:00</div>
+
+  <div class="separador">── ✦ ──</div>
+
+  <div class="fecha">
+    <div class="dia-semana" id="dia-semana">lunes</div>
+    <div id="fecha-completa">1 de enero</div>
+  </div>
+
+  <div class="deco-bottom">˚ ₊ ✦ ₊ ˚</div>
+</div>
+
+<script>
+  // Nombres de días y meses en español
+  const dias   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const meses  = ['enero','febrero','marzo','abril','mayo','junio',
+                  'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function actualizar() {
+    const ahora = new Date();
+
+    // Hora y minutos
+    const h = String(ahora.getHours()).padStart(2, '0');
+    const m = String(ahora.getMinutes()).padStart(2, '0');
+    const s = String(ahora.getSeconds()).padStart(2, '0');
+
+    document.getElementById('hora').textContent       = `${h}:${m}`;
+    document.getElementById('segundos').textContent   = `:${s}`;
+
+    // Fecha
+    const diaSemana    = dias[ahora.getDay()];
+    const diaNumero    = ahora.getDate();
+    const mes          = meses[ahora.getMonth()];
+
+    document.getElementById('dia-semana').textContent     = diaSemana;
+    document.getElementById('fecha-completa').textContent = `${diaNumero} de ${mes}`;
+  }
+
+  // Ejecutar de inmediato y luego cada segundo
+  actualizar();
+  setInterval(actualizar, 1000);
+</script>
+
+</body>
+</html>
