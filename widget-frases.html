@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget · Frase del Día</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  .widget {
+    background: rgba(253, 250, 246, 0.92);
+    border: 1px solid #ede4d4;
+    border-radius: 16px;
+    padding: 22px 24px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 24px rgba(180, 140, 120, 0.12);
+    min-width: 220px;
+    max-width: 300px;
+    animation: aparecer 0.7s ease both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Línea superior */
+  .widget::before {
+    content: '';
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    margin: -22px -24px 18px;
+    background: linear-gradient(to right, #b8cbb4, #c4b8d8, #d4849e);
+  }
+
+  .titulo {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    margin-bottom: 16px;
+  }
+
+  /* Comilla decorativa */
+  .comilla {
+    font-size: 2.8rem;
+    color: #ede4d4;
+    font-family: 'Noto Serif JP', serif;
+    line-height: 0.6;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  /* La frase */
+  .frase {
+    font-size: 13.5px;
+    font-weight: 300;
+    color: #2e2420;
+    line-height: 1.75;
+    letter-spacing: 0.02em;
+    font-style: italic;
+    min-height: 60px;
+    transition: opacity 0.4s ease;
+  }
+
+  .frase.cargando {
+    color: #c8b8a8;
+    font-size: 12px;
+  }
+
+  /* Separador */
+  .separador {
+    font-size: 10px;
+    color: #d4849e;
+    letter-spacing: 0.3em;
+    margin: 14px 0 10px;
+  }
+
+  /* Fecha pequeña */
+  .fecha {
+    font-size: 9.5px;
+    color: #b8a898;
+    letter-spacing: 0.14em;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    margin-bottom: 14px;
+  }
+
+  /* Botón nueva frase */
+  .btn-nueva {
+    background: none;
+    border: 1px solid #ede4d4;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 10px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+  }
+
+  .btn-nueva:hover {
+    background: #fce8f0;
+    border-color: #d4849e;
+    color: #d4849e;
+  }
+
+  .btn-nueva:active {
+    transform: scale(0.97);
+  }
+
+  /* Estado de carga — puntitos animados */
+  .puntos {
+    display: inline-block;
+  }
+  .puntos span {
+    animation: parpadeo 1.2s infinite;
+    opacity: 0;
+  }
+  .puntos span:nth-child(2) { animation-delay: 0.2s; }
+  .puntos span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes parpadeo {
+    0%, 100% { opacity: 0; }
+    50%       { opacity: 1; }
+  }
+
+  /* Error */
+  .error-msg {
+    font-size: 11px;
+    color: #c8a882;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  .deco-bottom {
+    font-size: 10px;
+    color: #c4b8d8;
+    letter-spacing: 0.3em;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="widget">
+
+  <div class="titulo">✦ frase del día ✦</div>
+
+  <span class="comilla">"</span>
+
+  <div class="frase cargando" id="frase">
+    <span class="puntos">
+      <span>✿</span><span>✿</span><span>✿</span>
+    </span>
+  </div>
+
+  <div class="separador">── ✿ ──</div>
+
+  <div class="fecha" id="fecha-hoy">hoy</div>
+
+  <button class="btn-nueva" id="btn-nueva" onclick="generarFrase()">
+    ✦ nueva frase
+  </button>
+
+  <div class="deco-bottom">˚ ₊ ✦ ₊ ˚</div>
+
+</div>
+
+<script>
+  // ── CONFIGURACIÓN ──────────────────────────────────────────
+  // El estilo de las frases — puedes cambiar esto para
+  // diferentes versiones de tu plantilla (motivacional,
+  // filosófico, coreano-inspirado, etc.)
+  const ESTILO_FRASE = `
+    Genera UNA sola frase inspiracional en español.
+    El estilo debe ser: poético, suave, contemplativo.
+    Inspirado en filosofía japonesa (wabi-sabi, ikigai, mono no aware).
+    Debe hablar de crecimiento personal, creatividad o calma.
+    La frase debe tener entre 10 y 22 palabras.
+    NO incluyas comillas, autor, ni explicaciones.
+    Solo la frase, nada más.
+  `;
+  // ───────────────────────────────────────────────────────────
+
+  // Frases de respaldo — se usan si la API no responde
+  // (por ejemplo, si el widget se ve sin internet)
+  const FRASES_RESPALDO = [
+    "Cada pequeño paso es el inicio de un camino que aún no imaginas.",
+    "La calma no es ausencia de movimiento, sino presencia plena en él.",
+    "Floreces despacio, y eso también es una forma de florecer.",
+    "Lo que creas hoy, aunque sea imperfecto, es más que lo que no hiciste.",
+    "El caos y la belleza viven muy cerca la una de la otra.",
+    "Algunas cosas tardan en llegar porque necesitan que primero estés lista.",
+    "Tu ritmo no es lentitud — es profundidad.",
+    "Hay días que solo existen para ser vividos sin prisa.",
+  ];
+
+  // Guarda la frase del día en memoria del navegador
+  // para no llamar a la API cada vez que se recarga
+  const HOY = new Date().toDateString();
+
+  async function generarFrase(forzar = false) {
+    const elFrase = document.getElementById('frase');
+    const elBtn   = document.getElementById('btn-nueva');
+
+    // Si ya hay frase guardada hoy y no forzamos nueva, usarla
+    const guardada = localStorage.getItem('frase_widget');
+    const fechaGuardada = localStorage.getItem('frase_fecha');
+
+    if (!forzar && guardada && fechaGuardada === HOY) {
+      mostrarFrase(guardada);
+      return;
+    }
+
+    // Mostrar estado de carga
+    elFrase.className = 'frase cargando';
+    elFrase.innerHTML = '<span class="puntos"><span>✿</span><span>✿</span><span>✿</span></span>';
+    elBtn.disabled = true;
+    elBtn.textContent = 'generando...';
+
+    try {
+      const respuesta = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 100,
+          messages: [{
+            role: 'user',
+            content: ESTILO_FRASE
+          }]
+        })
+      });
+
+      if (!respuesta.ok) throw new Error('API no disponible');
+
+      const datos = await respuesta.json();
+      const frase = datos.content[0].text.trim();
+
+      // Guardar en localStorage para no repetir llamadas hoy
+      localStorage.setItem('frase_widget', frase);
+      localStorage.setItem('frase_fecha', HOY);
+
+      mostrarFrase(frase);
+
+    } catch (error) {
+      // Si falla la API, usar frase de respaldo aleatoria
+      const aleatoria = FRASES_RESPALDO[
+        Math.floor(Math.random() * FRASES_RESPALDO.length)
+      ];
+      mostrarFrase(aleatoria);
+    }
+
+    elBtn.disabled = false;
+    elBtn.textContent = '✦ nueva frase';
+  }
+
+  function mostrarFrase(texto) {
+    const el = document.getElementById('frase');
+    // Fade out → cambiar texto → fade in
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.className = 'frase';
+      el.textContent = texto;
+      el.style.opacity = '1';
+    }, 300);
+  }
+
+  // Fecha de hoy en español
+  function mostrarFecha() {
+    const ahora = new Date();
+    const dias   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const meses  = ['enero','febrero','marzo','abril','mayo','junio',
+                    'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const texto = `${dias[ahora.getDay()]} ${ahora.getDate()} de ${meses[ahora.getMonth()]}`;
+    document.getElementById('fecha-hoy').textContent = texto;
+  }
+
+  // Iniciar
+  mostrarFecha();
+  generarFrase();
+
+  // El botón "nueva frase" sí fuerza una nueva aunque sea el mismo día
+  document.getElementById('btn-nueva').onclick = () => generarFrase(true);
+</script>
+
+</body>
+</html>
