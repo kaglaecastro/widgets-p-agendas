@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget · ¿Cómo me siento?</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 8px;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  .widget {
+    width: 100%;
+    background: rgba(253,250,246,0.95);
+    border: 1px solid #ede4d4;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 24px rgba(180,140,120,0.10);
+    animation: aparecer 0.6s ease both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .widget::before {
+    content: '';
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    margin: -20px -20px 18px;
+    background: linear-gradient(to right, #c4b8d8, #d4849e, #c8a882);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #ede4d4;
+  }
+
+  .titulo {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.9rem;
+    color: #2e2420;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .fecha-badge {
+    font-size: 9px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: #f0ecfb;
+    color: #7050b0;
+    border: 1px solid #c4b8d8;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.06em;
+  }
+
+  /* Moods */
+  .moods-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .mood-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 4px;
+    border-radius: 12px;
+    border: 1.5px solid #ede4d4;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .mood-btn:hover {
+    transform: translateY(-3px);
+    border-color: #c4b8d8;
+    background: #f0ecfb;
+  }
+
+  .mood-btn.activo {
+    border-color: transparent;
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  }
+
+  /* Colores por mood */
+  .mood-btn.activo.m-feliz    { background: #fce8f0; border-color: #d4849e; }
+  .mood-btn.activo.m-tranquila{ background: #eaf4e8; border-color: #88aa80; }
+  .mood-btn.activo.m-motivada { background: #fdf4e0; border-color: #c8a060; }
+  .mood-btn.activo.m-cansada  { background: #f0ecfb; border-color: #a898c8; }
+  .mood-btn.activo.m-triste   { background: #eef4f8; border-color: #90b8d0; }
+
+  .mood-emoji { font-size: 1.6rem; line-height: 1; }
+
+  .mood-label {
+    font-size: 9px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .mood-btn.activo .mood-label { font-weight: 400; color: #4a3c30; }
+
+  /* Nota de mood */
+  .nota-mood {
+    display: none;
+    animation: slideDown 0.3s ease both;
+  }
+
+  .nota-mood.visible { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .nota-label {
+    font-size: 9.5px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+
+  .nota-input {
+    width: 100%;
+    background: #fdfaf6;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 12px;
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 300;
+    color: #2e2420;
+    font-style: italic;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .nota-input:focus { border-color: #c4b8d8; }
+  .nota-input::placeholder { color: #c8b8a8; }
+
+  /* Historial semanal */
+  .sep {
+    text-align: center;
+    font-size: 10px;
+    color: #c4b8d8;
+    letter-spacing: 0.25em;
+    margin: 14px 0 10px;
+  }
+
+  .historial-label {
+    font-size: 9px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .historial {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .hist-dia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .hist-nombre {
+    font-size: 8.5px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .hist-nombre.hoy { color: #d4849e; font-weight: 400; }
+
+  .hist-emoji {
+    font-size: 1.1rem;
+    min-height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hist-vacio {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px dashed #ede4d4;
+    margin: 2px auto 0;
+  }
+
+  .deco { text-align: center; font-size: 10px; color: #c4b8d8; letter-spacing: 0.3em; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="widget">
+
+  <div class="header">
+    <div class="titulo">🌤 ¿cómo me siento hoy?</div>
+    <div class="fecha-badge" id="fecha-badge">hoy</div>
+  </div>
+
+  <div class="moods-grid" id="moods-grid">
+    <button class="mood-btn m-feliz"     onclick="selMood(this,'feliz','🌸','m-feliz')">
+      <span class="mood-emoji">🌸</span>
+      <span class="mood-label">feliz</span>
+    </button>
+    <button class="mood-btn m-tranquila" onclick="selMood(this,'tranquila','🍵','m-tranquila')">
+      <span class="mood-emoji">🍵</span>
+      <span class="mood-label">tranquila</span>
+    </button>
+    <button class="mood-btn m-motivada"  onclick="selMood(this,'motivada','⚡','m-motivada')">
+      <span class="mood-emoji">⚡</span>
+      <span class="mood-label">motivada</span>
+    </button>
+    <button class="mood-btn m-cansada"   onclick="selMood(this,'cansada','🌧','m-cansada')">
+      <span class="mood-emoji">🌧</span>
+      <span class="mood-label">cansada</span>
+    </button>
+    <button class="mood-btn m-triste"    onclick="selMood(this,'triste','🌙','m-triste')">
+      <span class="mood-emoji">🌙</span>
+      <span class="mood-label">melancólica</span>
+    </button>
+  </div>
+
+  <div class="nota-mood" id="nota-mood">
+    <div class="nota-label">✦ ¿qué lo está causando?</div>
+    <textarea class="nota-input" id="nota-mood-input"
+      placeholder="escribe lo que sientes... ✿"
+      rows="2"></textarea>
+  </div>
+
+  <div class="sep">── ✿ ──</div>
+
+  <div class="historial-label">esta semana</div>
+  <div class="historial" id="historial"></div>
+
+  <div class="deco">˚ ₊ ✦ ₊ ˚</div>
+</div>
+
+<script>
+const MOOD_EMOJIS = {
+  feliz: '🌸', tranquila: '🍵', motivada: '⚡', cansada: '🌧', triste: '🌙'
+};
+
+const HOY     = new Date();
+const HOY_STR = HOY.toDateString();
+const DIAS    = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES   = ['enero','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS_C  = ['D','L','M','X','J','V','S'];
+
+const guardar = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e){} };
+const leer    = (k,d) => { try { const v=localStorage.getItem(k); return v!==null?JSON.parse(v):d; } catch(e){return d;} };
+
+// Badge fecha
+document.getElementById('fecha-badge').textContent =
+  `${DIAS[HOY.getDay()]} ${HOY.getDate()} de ${MESES[HOY.getMonth()]}`;
+
+// Cargar mood guardado de hoy
+const claveHoy  = `mood_${HOY_STR}`;
+const moodHoy   = leer(claveHoy, null);
+const notaHoy   = leer(`mood_nota_${HOY_STR}`, '');
+
+if (moodHoy) {
+  const btn = document.querySelector(`.mood-btn.m-${moodHoy}`);
+  if (btn) { btn.classList.add('activo'); mostrarNota(notaHoy); }
+}
+
+function selMood(btn, nombre, emoji, clase) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
+  guardar(claveHoy, nombre);
+  mostrarNota(leer(`mood_nota_${HOY_STR}`, ''));
+  renderHistorial();
+}
+
+function mostrarNota(texto) {
+  const panel = document.getElementById('nota-mood');
+  panel.classList.add('visible');
+  const input = document.getElementById('nota-mood-input');
+  input.value = texto;
+  input.oninput = () => guardar(`mood_nota_${HOY_STR}`, input.value);
+}
+
+// Historial semanal
+function getLunes(d) {
+  const f = new Date(d);
+  const dia = f.getDay();
+  f.setDate(f.getDate() - (dia === 0 ? 6 : dia - 1));
+  f.setHours(0,0,0,0);
+  return f;
+}
+
+function renderHistorial() {
+  const lunes = getLunes(HOY);
+  const hist  = document.getElementById('historial');
+  hist.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(lunes);
+    d.setDate(lunes.getDate() + i);
+    const esHoy  = d.toDateString() === HOY_STR;
+    const mood   = leer(`mood_${d.toDateString()}`, null);
+    const nombre = ['L','M','X','J','V','S','D'][i];
+
+    hist.innerHTML += `
+      <div class="hist-dia">
+        <span class="hist-nombre ${esHoy ? 'hoy' : ''}">${nombre}</span>
+        <div class="hist-emoji">${mood ? MOOD_EMOJIS[mood] : '<div class="hist-vacio"></div>'}</div>
+      </div>`;
+  }
+}
+
+renderHistorial();
+</script>
+</body>
+</html>
