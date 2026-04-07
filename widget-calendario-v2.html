@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget · Calendario con Eventos</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 8px;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  .widget {
+    width: 100%;
+    background: rgba(253,250,246,0.95);
+    border: 1px solid #ede4d4;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(180,140,120,0.10);
+    animation: aparecer 0.6s ease both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .top-bar {
+    height: 3px;
+    background: linear-gradient(to right, #b8cbb4, #c4b8d8, #d4849e);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 14px;
+    border-bottom: 1px dashed #ede4d4;
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-btn {
+    background: none;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    width: 28px; height: 28px;
+    font-size: 13px;
+    color: #9a8f82;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:hover { background: #fce8f0; border-color: #d4849e; color: #d4849e; }
+
+  .mes-titulo {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #2e2420;
+    letter-spacing: 0.04em;
+    min-width: 130px;
+  }
+
+  .btn-agregar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--rose-light, #fce8f0);
+    border: 1px solid #d4849e;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 10.5px;
+    color: #b0607a;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+  }
+  .btn-agregar:hover {
+    background: #d4849e;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(212,132,158,0.3);
+  }
+
+  /* ── GRID ── */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    padding: 12px 12px 8px;
+  }
+
+  .dia-nombre {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 3px 0 8px;
+    text-transform: uppercase;
+  }
+  .dia-nombre.fin { color: #d4849e; }
+
+  .dia {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 11.5px;
+    color: #4a3c30;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    gap: 2px;
+    border: 1px solid transparent;
+    padding: 2px;
+  }
+
+  .dia:hover:not(.vacio) { background: rgba(252,232,240,0.6); }
+  .dia.hoy { background: #d4849e; color: white; }
+  .dia.hoy:hover { background: #c0607a; }
+  .dia.seleccionado { background: #f0ecfb; border-color: #c4b8d8; color: #7050b0; }
+  .dia.otro-mes { color: #c8b8a8; }
+  .dia.vacio { pointer-events: none; }
+
+  /* Dots de eventos */
+  .dia-dots {
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .dia-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dia.hoy .dia-dot { opacity: 0.8; }
+
+  /* ── PANEL INFERIOR ── */
+  .panel {
+    border-top: 1px dashed #ede4d4;
+    padding: 14px 16px;
+  }
+
+  /* Panel de eventos del día */
+  .eventos-dia {
+    display: none;
+  }
+  .eventos-dia.visible { display: block; }
+
+  .eventos-dia-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .eventos-dia-titulo {
+    font-size: 10px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .eventos-dia-titulo em {
+    color: #d4849e;
+    font-style: italic;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  .eventos-lista-dia {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .evento-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: #fdfaf6;
+    border: 1px solid #ede4d4;
+    transition: all 0.15s;
+  }
+
+  .evento-chip:hover { border-color: #c4b8d8; }
+
+  .evento-color-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .evento-texto {
+    font-size: 12px;
+    color: #4a3c30;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .evento-borrar {
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: #c8b8a8;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .evento-borrar:hover { background: #fce8f0; color: #d4849e; }
+
+  .sin-eventos {
+    font-size: 11.5px;
+    color: #c8b8a8;
+    font-style: italic;
+    font-family: 'Noto Serif JP', serif;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  /* ── FORMULARIO NUEVO EVENTO ── */
+  .form-evento {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: #fdfaf6;
+    border: 1px solid #ede4d4;
+    border-radius: 10px;
+    animation: slideDown 0.25s ease both;
+  }
+
+  .form-evento.visible { display: flex; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-titulo {
+    font-size: 9.5px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .form-input {
+    flex: 1;
+    background: white;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: #2e2420;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: #c4b8d8; }
+  .form-input::placeholder { color: #c8b8a8; }
+
+  .form-dia-input {
+    width: 60px;
+    flex: none;
+    text-align: center;
+  }
+
+  /* Selector de color */
+  .color-picker {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .color-opt {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .color-opt:hover { transform: scale(1.2); }
+  .color-opt.seleccionado { border-color: #2e2420; transform: scale(1.15); }
+
+  .form-btns {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancelar {
+    background: none;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancelar:hover { background: #f8f4f0; }
+
+  .btn-guardar {
+    background: #d4849e;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: white;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .btn-guardar:hover {
+    background: #b0607a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(176,96,122,0.3);
+  }
+
+  /* ── STATS ── */
+  .stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #ede4d4;
+  }
+
+  .stat-mini {
+    flex: 1;
+    background: #fdfaf6;
+    border: 1px solid #ede4d4;
+    border-radius: 8px;
+    padding: 7px;
+    text-align: center;
+  }
+
+  .stat-mini-num {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.2rem;
+    font-weight: 300;
+    color: #2e2420;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .stat-mini-label {
+    font-size: 8px;
+    color: #9a8f82;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .deco {
+    text-align: center;
+    font-size: 10px;
+    color: #c4b8d8;
+    letter-spacing: 0.3em;
+    padding: 10px 0 4px;
+  }
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="top-bar"></div>
+
+  <div class="header">
+    <div class="nav-left">
+      <button class="nav-btn" onclick="cambiarMes(-1)">‹</button>
+      <div class="mes-titulo" id="mes-titulo">Abril 2025</div>
+      <button class="nav-btn" onclick="cambiarMes(1)">›</button>
+    </div>
+    <button class="btn-agregar" onclick="toggleForm()">
+      ✦ agregar evento
+    </button>
+  </div>
+
+  <div class="cal-grid" id="cal-grid"></div>
+
+  <div class="panel">
+
+    <!-- Formulario nuevo evento -->
+    <div class="form-evento" id="form-evento">
+      <div class="form-titulo">✦ nuevo evento</div>
+      <div class="form-row">
+        <input class="form-input form-dia-input" type="number"
+          id="form-dia" min="1" max="31" placeholder="día">
+        <input class="form-input" type="text"
+          id="form-texto" placeholder="nombre del evento... ✿" maxlength="40">
+      </div>
+      <div class="form-row">
+        <span style="font-size:10px;color:#9a8f82;font-family:'Noto Sans JP',sans-serif;letter-spacing:0.08em;">color:</span>
+        <div class="color-picker" id="color-picker">
+          <div class="color-opt seleccionado" data-color="#d4849e" style="background:#d4849e" onclick="selColor(this)"></div>
+          <div class="color-opt" data-color="#88aa80" style="background:#88aa80" onclick="selColor(this)"></div>
+          <div class="color-opt" data-color="#a898c8" style="background:#a898c8" onclick="selColor(this)"></div>
+          <div class="color-opt" data-color="#c8a060" style="background:#c8a060" onclick="selColor(this)"></div>
+          <div class="color-opt" data-color="#90b8d0" style="background:#90b8d0" onclick="selColor(this)"></div>
+          <div class="color-opt" data-color="#c8b040" style="background:#c8b040" onclick="selColor(this)"></div>
+        </div>
+      </div>
+      <div class="form-btns">
+        <button class="btn-cancelar" onclick="toggleForm()">cancelar</button>
+        <button class="btn-guardar" onclick="guardarEvento()">✿ guardar</button>
+      </div>
+    </div>
+
+    <!-- Eventos del día seleccionado -->
+    <div class="eventos-dia" id="eventos-dia">
+      <div class="eventos-dia-header">
+        <div class="eventos-dia-titulo">✦ <em id="eventos-dia-titulo">hoy</em></div>
+        <button class="btn-cancelar" onclick="cerrarPanel()" style="font-size:10px;padding:3px 8px;">✕</button>
+      </div>
+      <div class="eventos-lista-dia" id="eventos-lista-dia"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats"></div>
+
+    <div class="deco">✿ ── ✦ ── ✿</div>
+  </div>
+</div>
+
+<script>
+// ── COLORES disponibles ──
+const COLORES = ['#d4849e','#88aa80','#a898c8','#c8a060','#90b8d0','#c8b040'];
+let colorSeleccionado = COLORES[0];
+
+const HOY      = new Date();
+HOY.setHours(0,0,0,0);
+let calFecha   = new Date(HOY.getFullYear(), HOY.getMonth(), 1);
+let diaActivo  = null;
+let formVisible = false;
+
+const NOMBRES_MES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_CORTO  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS_N       = ['L','M','X','J','V','S','D'];
+
+// ── STORAGE ──
+const guardar = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e){} };
+const leer    = (k,d) => { try { const v=localStorage.getItem(k); return v!==null?JSON.parse(v):d; } catch(e){return d;} };
+
+// Clave para eventos del mes
+function claveEventos(anio, mes) { return `eventos_cal_${anio}_${mes}`; }
+
+// Obtener eventos del mes actual
+function getEventos(anio, mes) { return leer(claveEventos(anio, mes), {}); }
+
+// Guardar evento
+function addEvento(anio, mes, dia, texto, color) {
+  const eventos = getEventos(anio, mes);
+  if (!eventos[dia]) eventos[dia] = [];
+  eventos[dia].push({ texto, color, id: Date.now() });
+  guardar(claveEventos(anio, mes), eventos);
+}
+
+// Borrar evento
+function delEvento(anio, mes, dia, id) {
+  const eventos = getEventos(anio, mes);
+  if (eventos[dia]) {
+    eventos[dia] = eventos[dia].filter(e => e.id !== id);
+    if (eventos[dia].length === 0) delete eventos[dia];
+  }
+  guardar(claveEventos(anio, mes), eventos);
+}
+
+// ── RENDER CALENDARIO ──
+function render() {
+  const anio    = calFecha.getFullYear();
+  const mes     = calFecha.getMonth();
+  const eventos = getEventos(anio, mes);
+
+  document.getElementById('mes-titulo').textContent =
+    `${NOMBRES_MES[mes]} ${anio}`;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Nombres días
+  DIAS_N.forEach((n,i) => {
+    const el = document.createElement('div');
+    el.className = 'dia-nombre' + (i >= 5 ? ' fin' : '');
+    el.textContent = n;
+    grid.appendChild(el);
+  });
+
+  // Offset
+  let inicio = new Date(anio, mes, 1).getDay();
+  inicio = inicio === 0 ? 6 : inicio - 1;
+
+  const diasAnt = new Date(anio, mes, 0).getDate();
+  for (let i = inicio - 1; i >= 0; i--) {
+    const el = document.createElement('div');
+    el.className = 'dia otro-mes vacio';
+    el.innerHTML = `<span>${diasAnt - i}</span>`;
+    grid.appendChild(el);
+  }
+
+  const totalDias = new Date(anio, mes + 1, 0).getDate();
+  for (let d = 1; d <= totalDias; d++) {
+    const el      = document.createElement('div');
+    el.className  = 'dia';
+    const esHoy   = d === HOY.getDate() && mes === HOY.getMonth() && anio === HOY.getFullYear();
+    const esSel   = diaActivo && diaActivo.d === d && diaActivo.m === mes && diaActivo.a === anio;
+    const evsDia  = eventos[d] || [];
+
+    if (esHoy)  el.classList.add('hoy');
+    if (esSel)  el.classList.add('seleccionado');
+
+    // Dots de eventos
+    const dotsHtml = evsDia.slice(0,3).map(e =>
+      `<div class="dia-dot" style="background:${e.color}"></div>`
+    ).join('');
+
+    el.innerHTML = `<span>${d}</span>${evsDia.length ? `<div class="dia-dots">${dotsHtml}</div>` : ''}`;
+    el.onclick = () => selDia(d, mes, anio);
+    grid.appendChild(el);
+  }
+
+  // Rellenar última semana
+  const total  = inicio + totalDias;
+  const resto  = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 1; i <= resto; i++) {
+    const el = document.createElement('div');
+    el.className = 'dia otro-mes vacio';
+    el.innerHTML = `<span>${i}</span>`;
+    grid.appendChild(el);
+  }
+
+  renderStats(anio, mes, totalDias, eventos);
+
+  // Re-render panel si hay día activo
+  if (diaActivo && diaActivo.m === mes && diaActivo.a === anio) {
+    renderEventosDia(diaActivo.d, mes, anio);
+  }
+}
+
+// ── SELECCIONAR DÍA ──
+function selDia(d, m, a) {
+  if (diaActivo && diaActivo.d === d && diaActivo.m === m && diaActivo.a === a) {
+    cerrarPanel();
+    return;
+  }
+  diaActivo = { d, m, a };
+  // Cerrar form si está abierto
+  if (formVisible) toggleForm();
+  renderEventosDia(d, m, a);
+  render();
+}
+
+function renderEventosDia(d, m, a) {
+  const panel    = document.getElementById('eventos-dia');
+  const lista    = document.getElementById('eventos-lista-dia');
+  const titulo   = document.getElementById('eventos-dia-titulo');
+  const eventos  = getEventos(a, m);
+  const evsDia   = eventos[d] || [];
+
+  titulo.textContent = `${d} de ${NOMBRES_MES[m]}`;
+  lista.innerHTML    = '';
+
+  if (evsDia.length === 0) {
+    lista.innerHTML = '<div class="sin-eventos">sin eventos · haz clic en "agregar evento" ✿</div>';
+  } else {
+    evsDia.forEach(ev => {
+      const item = document.createElement('div');
+      item.className = 'evento-chip';
+      item.innerHTML = `
+        <div class="evento-color-dot" style="background:${ev.color}"></div>
+        <span class="evento-texto">${ev.texto}</span>
+        <button class="evento-borrar" onclick="borrarEvento(${d},${m},${a},${ev.id})" title="eliminar">✕</button>
+      `;
+      lista.appendChild(item);
+    });
+  }
+
+  panel.classList.add('visible');
+
+  // Pre-llenar el día en el form
+  document.getElementById('form-dia').value = d;
+}
+
+function cerrarPanel() {
+  document.getElementById('eventos-dia').classList.remove('visible');
+  diaActivo = null;
+  render();
+}
+
+function borrarEvento(d, m, a, id) {
+  delEvento(a, m, d, id);
+  renderEventosDia(d, m, a);
+  render();
+}
+
+// ── FORMULARIO ──
+function toggleForm() {
+  formVisible = !formVisible;
+  const form = document.getElementById('form-evento');
+  form.classList.toggle('visible', formVisible);
+
+  if (formVisible) {
+    // Pre-llenar con día seleccionado o hoy
+    const dia = diaActivo ? diaActivo.d : HOY.getDate();
+    document.getElementById('form-dia').value = dia;
+    document.getElementById('form-texto').value = '';
+    setTimeout(() => document.getElementById('form-texto').focus(), 100);
+  }
+}
+
+function selColor(el) {
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.remove('seleccionado'));
+  el.classList.add('seleccionado');
+  colorSeleccionado = el.dataset.color;
+}
+
+function guardarEvento() {
+  const dia    = parseInt(document.getElementById('form-dia').value);
+  const texto  = document.getElementById('form-texto').value.trim();
+  const anio   = calFecha.getFullYear();
+  const mes    = calFecha.getMonth();
+  const total  = new Date(anio, mes + 1, 0).getDate();
+
+  if (!dia || dia < 1 || dia > total) {
+    document.getElementById('form-dia').style.borderColor = '#d4849e';
+    document.getElementById('form-dia').focus();
+    return;
+  }
+  if (!texto) {
+    document.getElementById('form-texto').style.borderColor = '#d4849e';
+    document.getElementById('form-texto').focus();
+    return;
+  }
+
+  addEvento(anio, mes, dia, texto, colorSeleccionado);
+
+  // Reset form
+  document.getElementById('form-dia').style.borderColor = '';
+  document.getElementById('form-texto').style.borderColor = '';
+  toggleForm();
+
+  // Mostrar el día recién agregado
+  diaActivo = { d: dia, m: mes, a: anio };
+  render();
+  renderEventosDia(dia, mes, anio);
+}
+
+// Enter para guardar
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && formVisible) guardarEvento();
+  if (e.key === 'Escape') {
+    if (formVisible) toggleForm();
+    else cerrarPanel();
+  }
+});
+
+// ── STATS ──
+function renderStats(anio, mes, totalDias, eventos) {
+  const el           = document.getElementById('stats');
+  const totalEventos = Object.values(eventos).reduce((s,v) => s + v.length, 0);
+  const diasConEv    = Object.keys(eventos).length;
+  const diasRest     = mes === HOY.getMonth() && anio === HOY.getFullYear()
+    ? totalDias - HOY.getDate() + 1 : totalDias;
+
+  el.innerHTML = `
+    <div class="stat-mini">
+      <div class="stat-mini-num">${totalDias}</div>
+      <div class="stat-mini-label">días</div>
+    </div>
+    <div class="stat-mini">
+      <div class="stat-mini-num" style="color:#d4849e">${totalEventos}</div>
+      <div class="stat-mini-label">eventos</div>
+    </div>
+    <div class="stat-mini">
+      <div class="stat-mini-num" style="color:#a898c8">${diasConEv}</div>
+      <div class="stat-mini-label">días con plan</div>
+    </div>
+    <div class="stat-mini">
+      <div class="stat-mini-num" style="color:#88aa80">${diasRest}</div>
+      <div class="stat-mini-label">por venir</div>
+    </div>
+  `;
+}
+
+function cambiarMes(dir) {
+  calFecha.setMonth(calFecha.getMonth() + dir);
+  diaActivo = null;
+  document.getElementById('eventos-dia').classList.remove('visible');
+  if (formVisible) toggleForm();
+  render();
+}
+
+// Iniciar
+render();
+</script>
+</body>
+</html>
